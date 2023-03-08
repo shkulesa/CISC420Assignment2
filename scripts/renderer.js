@@ -74,12 +74,15 @@ class Renderer {
         // TODO: update any transformations needed for animation
         this.ballLogic(delta_time);
         
+        // console.log(Math.sin(0.261799));
         // let model_matrix = new Matrix(3, 3);
         // mat3x3Identity(model_matrix);
         // console.log(model_matrix);
-        // model_matrix.values = [[1, 0, 0],
-        //                        [0, 1, 0],
+        // model_matrix.values = [[1, 0, 20],
+        //                        [0, 1, 20],
         //                        [0, 0, 1]];
+        // console.log(model_matrix);
+        
 
     }
 
@@ -91,7 +94,7 @@ class Renderer {
         }
         center.x = center.x/shape.length;
         center.y = center/shape.length;
-        console.log(shape[0]);
+        // console.log(shape[0]);
         let matrix = new Matrix(3, 3);
     }
 
@@ -202,7 +205,6 @@ class Renderer {
             Vector3(300, 300, 1)
         ];
         this.spinLogic(triangle);
-        
     }
 
     //
