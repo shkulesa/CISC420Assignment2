@@ -1,7 +1,10 @@
+
+
 class Renderer {
     // canvas:              object ({id: __, width: __, height: __})
     // limit_fps_flag:      bool 
     // fps:                 int
+    
     constructor(canvas, limit_fps_flag, fps) {
         this.canvas = document.getElementById(canvas.id);
         this.canvas.width = canvas.width;
@@ -12,6 +15,9 @@ class Renderer {
         this.fps = fps;
         this.start_time = null;
         this.prev_time = null;
+        this.ballCenter = {x: 200, y: 200};
+        this.ballRadius = 40;
+        this.ballDir = {x: 1, y: 1};
     }
 
     // flag:  bool
@@ -66,6 +72,43 @@ class Renderer {
     //
     updateTransforms(time, delta_time) {
         // TODO: update any transformations needed for animation
+        this.ballLogic(delta_time);
+        
+        // let model_matrix = new Matrix(3, 3);
+        // mat3x3Identity(model_matrix);
+        // console.log(model_matrix);
+        // model_matrix.values = [[1, 0, 0],
+        //                        [0, 1, 0],
+        //                        [0, 0, 1]];
+
+    }
+
+    spinLogic(shape){
+        let center = {x: 0, y:0};
+        for(let i = 0; i<shape.length; i++){
+            center.x = center.x + parseInt(shape[i].data[0]);
+            center.y = center.y + parseInt(shape[i].data[1]);
+        }
+        center.x = center.x/shape.length;
+        center.y = center/shape.length;
+        console.log(shape[0]);
+        let matrix = new Matrix(3, 3);
+    }
+
+    ballLogic(delta_time){
+        let x = this.ballCenter.x;
+        let y = this.ballCenter.y;
+        let r = this.ballRadius;
+        let dir = this.ballDir;
+        let speed = 0.50;
+        if(x-r < 0 || x+r > this.canvas.width){
+            dir.x = -dir.x;
+        }
+        if(y-r < 0 || y+r > this.canvas.height){
+            dir.y = -dir.y;
+        }
+        this.ballCenter.x += dir.x * speed * delta_time;
+        this.ballCenter.y += dir.y * speed * delta_time;
     }
     
     //
@@ -95,6 +138,7 @@ class Renderer {
         
         // Following line is example of drawing a single polygon
         // (this should be removed/edited after you implement the slide)
+        /*/
         let diamond = [
             Vector3(400, 150, 1),
             Vector3(500, 300, 1),
@@ -103,6 +147,27 @@ class Renderer {
         ];
         let teal = [0, 128, 128, 255];
         this.drawConvexPolygon(diamond, teal);
+        //*/
+        let edges = 30;
+        let teal = [0, 128, 128, 255];
+        this.drawCircle(this.ballCenter, this.ballRadius, edges, teal);
+
+        
+    }
+
+    drawCircle(center, radius, edges, color){
+        let ratio = 1/edges;
+        let seg = 2*Math.PI*ratio;
+        let inc = 0;
+        let circle = [];
+        for(let p = seg; p<=2*Math.PI+seg; p+=seg){
+            let x = Math.round(center.x + radius * Math.cos(p));
+            let y = Math.round(center.y + radius * Math.sin(p));
+            circle[inc] = Vector3(x, y, 1);
+            inc++;
+        }
+        this.drawConvexPolygon(circle, color);
+        
     }
 
     //
@@ -110,6 +175,33 @@ class Renderer {
         // TODO: draw at least 3 polygons that spin about their own centers
         //   - have each polygon spin at a different speed / direction
         
+        let diamond = [
+            Vector3(200, 237, 1),
+            Vector3(225, 275, 1),
+            Vector3(200, 312, 1),
+            Vector3(175, 275, 1)
+        ];
+
+        let teal = [0, 128, 128, 255];
+        this.drawConvexPolygon(diamond, teal);
+        
+        //A[150; 0] B[0; 0] C[75; 129.904]
+        let triangle = [
+            Vector3(400, 375, 1), //B
+            Vector3(550, 375, 1), //A
+            Vector3(475, 505, 1) //C
+        ];
+        let red = [200, 0, 0, 255];
+        this.drawConvexPolygon(triangle, red);
+
+        
+        let rectangle = [
+            Vector3(500, 300, 1),
+            Vector3(500, 450, 1),
+            Vector3(300, 450, 1),
+            Vector3(300, 300, 1)
+        ];
+        this.spinLogic(triangle);
         
     }
 
@@ -118,7 +210,6 @@ class Renderer {
         // TODO: draw at least 2 polygons grow and shrink about their own centers
         //   - have each polygon grow / shrink different sizes
         //   - try at least 1 polygon that grows / shrinks non-uniformly in the x and y directions
-
 
     }
 
