@@ -47,12 +47,26 @@ class Renderer {
         ]),
       },
     ];
-    this.slide2Growing = true;
+    this.slide3Shape = {
+      points: [
+        { x: 362, y: 272 },
+        { x: 409, y: 198 },
+        { x: 455, y: 238 },
+        { x: 482, y: 300 },
+        { x: 455, y: 362 },
+        { x: 409, y: 402 },
+        { x: 362, y: 328 },
+      ],
+      speed: { x: 3, y: 2 },
+      scalars: { x: 1.06, y: 1.03 },
+      rotate: { theta: 0.1 },
+      alpha: 0,
+    };
     this.animationCounter = 0;
+    this.shapesGrowing = true;
   }
 
   findCenter(points) {
-    console.log(points);
     let sumX = 0;
     let sumY = 0;
     for (const point of points) {
@@ -88,7 +102,6 @@ class Renderer {
     //console.log('animate(): t = ' + time.toFixed(1) + ', dt = ' + delta_time.toFixed(1));
 
     // Update transforms for animation
-    console.log(time);
     this.updateTransforms(time, delta_time);
 
     // Draw slide
@@ -114,15 +127,17 @@ class Renderer {
   //
   updateTransforms(time, delta_time) {
     this.animationCounter++;
+    this.slide3Shape.alpha = (this.animationCounter % 127) * 2;
     // TODO: update any transformations needed for animation
 
     //slide 2
-    if (this.animationCounter % 30 === 0) this.slide2Growing = !this.slide2Growing;
+    if (this.animationCounter % 30 === 0) this.shapesGrowing = !this.shapesGrowing;
 
     for (let i = 0; i < this.slide2Shapes.length; i++) {
+      //find center
       let center = this.slide2Shapes[i].center;
-      let scaleX = this.slide2Growing ? this.slide2Shapes[i].scalars.x : 1 / this.slide2Shapes[i].scalars.x;
-      let scaleY = this.slide2Growing ? this.slide2Shapes[i].scalars.y : 1 / this.slide2Shapes[i].scalars.y;
+      let scaleX = this.shapesGrowing ? this.slide2Shapes[i].scalars.x : 1 / this.slide2Shapes[i].scalars.x;
+      let scaleY = this.shapesGrowing ? this.slide2Shapes[i].scalars.y : 1 / this.slide2Shapes[i].scalars.y;
 
       for (let j = 0; j < this.slide2Shapes[i].points.length; j++) {
         let point = this.slide2Shapes[i].points[j];
@@ -145,6 +160,38 @@ class Renderer {
         this.slide2Shapes[i].points[j].x = transformedVector.values[0][0];
         this.slide2Shapes[i].points[j].y = transformedVector.values[1][0];
       }
+    }
+
+    //slide 3
+    let center = this.findCenter(this.slide3Shape.points);
+    let scaleX = this.shapesGrowing ? this.slide3Shape.scalars.x : 1 / this.slide3Shape.scalars.x;
+    let scaleY = this.shapesGrowing ? this.slide3Shape.scalars.y : 1 / this.slide3Shape.scalars.y;
+    let dx = Math.trunc(this.animationCounter / 50) % 2 === 0 ? this.slide3Shape.speed.x : -this.slide3Shape.speed.x;
+    let dy = Math.trunc(this.animationCounter / 50) % 2 === 0 ? this.slide3Shape.speed.y : -this.slide3Shape.speed.y;
+
+    //transform matrices
+    let translateToOrigin = new Matrix(3, 3);
+    let scale = new Matrix(3, 3);
+    let rotate = new Matrix(3, 3);
+    let translateBack = new Matrix(3, 3);
+    let translate = new Matrix(3, 3);
+
+    mat3x3Translate(translateToOrigin, -center.x, -center.y);
+    mat3x3Scale(scale, scaleX, scaleY);
+    mat3x3Rotate(rotate, this.slide3Shape.rotate.theta);
+    mat3x3Translate(translateBack, center.x, center.y);
+    mat3x3Translate(translate, dx, dy);
+
+    let transform = Matrix.multiply([translate, translateBack, rotate, scale, translateToOrigin]);
+
+    for (let i = 0; i < this.slide3Shape.points.length; i++) {
+      let point = this.slide3Shape.points[i];
+
+      let vector = Vector3(point.x, point.y, 1);
+      //translate point
+      let transformedVector = Matrix.multiply([transform, vector]);
+      this.slide3Shape.points[i].x = transformedVector.values[0][0];
+      this.slide3Shape.points[i].y = transformedVector.values[1][0];
     }
   }
 
@@ -211,6 +258,13 @@ class Renderer {
     // TODO: get creative!
     //   - animation should involve all three basic transformation types
     //     (translation, scaling, and rotation)
+
+    let color1 = [153, 50, 204, 255 - this.slide3Shape.alpha];
+    let shape1Points = [];
+    for (const point of this.slide3Shape.points) {
+      shape1Points.push(Vector3(point.x, point.y, 1));
+    }
+    this.drawConvexPolygon(shape1Points, color1);
   }
 
   // vertex_list:  array of object [Matrix(3, 1), Matrix(3, 1), ..., Matrix(3, 1)]
@@ -218,7 +272,6 @@ class Renderer {
   drawConvexPolygon(vertex_list, color) {
     this.ctx.fillStyle = 'rgba(' + color[0] + ',' + color[1] + ',' + color[2] + ',' + color[3] / 255 + ')';
     this.ctx.beginPath();
-    // console.log(vertex_list);
     let x = vertex_list[0].values[0][0] / vertex_list[0].values[2][0];
     let y = vertex_list[0].values[1][0] / vertex_list[0].values[2][0];
     this.ctx.moveTo(x, y);
