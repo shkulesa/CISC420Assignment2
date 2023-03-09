@@ -16,6 +16,78 @@ class Renderer {
     this.ballCenter = { x: 200, y: 200 };
     this.ballRadius = 40;
     this.ballDir = { x: 1, y: 1 };
+    this.slide1Shapes = [
+      {
+        //diamond
+        points: [
+          { x: 200, y: 237 },
+          { x: 225, y: 275 },
+          { x: 200, y: 312 },
+          { x: 175, y: 275 },
+        ],
+        def: [
+          { x: 200, y: 237 },
+          { x: 225, y: 275 },
+          { x: 200, y: 312 },
+          { x: 175, y: 275 },
+        ],
+        center: this.findCenter([
+          { x: 200, y: 237 },
+          { x: 225, y: 275 },
+          { x: 200, y: 312 },
+          { x: 175, y: 275 },
+        ]),
+        speed: { x: 100, y: 80 },
+        color: [0, 128, 128, 255],
+        rotate: 0.2,
+      },
+      {
+        //triangle
+        points: [
+          { x: 400, y: 375 },
+          { x: 550, y: 375 },
+          { x: 475, y: 505 },
+        ],
+        def: [
+          { x: 400, y: 375 },
+          { x: 550, y: 375 },
+          { x: 475, y: 505 },
+        ],
+        center: this.findCenter([
+          { x: 400, y: 375 },
+          { x: 550, y: 375 },
+          { x: 475, y: 505 },
+        ]),
+        speed: { x: 100, y: 80 },
+        color: [200, 200, 0, 255],
+        rotate: -0.3,
+      },
+      {
+        //rectangle
+        points: [
+          { x: 500, y: 100 },
+          { x: 500, y: 250 },
+          { x: 600, y: 250 },
+          { x: 600, y: 100 },
+        ],
+        def: [
+          { x: 500, y: 100 },
+          { x: 500, y: 250 },
+          { x: 600, y: 250 },
+          { x: 600, y: 100 },
+        ],
+        center: this.findCenter([
+          { x: 500, y: 100 },
+          { x: 500, y: 250 },
+          { x: 600, y: 250 },
+          { x: 600, y: 100 },
+        ]),
+        speed: { x: 100, y: 80 },
+        color: [0, 200, 0, 255],
+        rotate: 0.7,
+      },
+    ];
+
     this.slide2Shapes = [
       {
         def: [
@@ -83,6 +155,15 @@ class Renderer {
         { x: 209, y: 302 },
         { x: 162, y: 228 },
       ],
+      center: this.findCenter([
+        { x: 162, y: 172 },
+        { x: 209, y: 98 },
+        { x: 255, y: 138 },
+        { x: 282, y: 200 },
+        { x: 255, y: 262 },
+        { x: 209, y: 302 },
+        { x: 162, y: 228 },
+      ]),
       speed: { x: 100, y: 80 },
       scalars: { x: 1.06, y: 1.03 },
       rotate: 0.1,
@@ -152,13 +233,38 @@ class Renderer {
   //
   updateTransforms(time, delta_time) {
     // TODO: update any transformations needed for animation
+    let new_time = Math.trunc(time);
+
+    //slide 0
+    this.ballLogic(delta_time);
 
     //slide 1
-    this.ballLogic(delta_time);
+    for (let i = 0; i < this.slide1Shapes.length; i++) {
+      let center = this.slide1Shapes[i].center;
+      let theta = (this.slide1Shapes[i].rotate * (time / 100)) % (2 * Math.PI);
+
+      let rotate = new Matrix(3, 3);
+      let translateToOrigin = new Matrix(3, 3);
+      let translateBack = new Matrix(3, 3);
+      mat3x3Rotate(rotate, theta);
+      for (let j = 0; j < this.slide1Shapes[i].def.length; j++) {
+        let point = this.slide1Shapes[i].def[j];
+        mat3x3Translate(translateToOrigin, -center.x, -center.y);
+        mat3x3Translate(translateBack, center.x, center.y);
+
+        let vector = Vector3(point.x, point.y, 1);
+        //make transform matrix
+        let transform = Matrix.multiply([translateBack, rotate, translateToOrigin]);
+        console.log(transform);
+        let transformedVector = Matrix.multiply([transform, vector]);
+
+        this.slide1Shapes[i].points[j].x = transformedVector.values[0][0];
+        this.slide1Shapes[i].points[j].y = transformedVector.values[1][0];
+      }
+    }
 
     //slide 2
     this.shapesGrowing = Math.trunc(time / 3000) % 2 === 0 ? true : false;
-    let new_time = Math.trunc(time);
 
     for (let i = 0; i < this.slide2Shapes.length; i++) {
       //find center
@@ -195,10 +301,10 @@ class Renderer {
         this.slide2Shapes[i].points[j].y = transformedVector.values[1][0];
       }
     }
-
     //slide 3
+
     let step = (new_time % 3000) / 1000;
-    let center = this.findCenter(this.slide3Shape.def);
+    let center = this.slide3Shape.center;
     let dx =
       Math.trunc(new_time / 3000) % 2 === 0
         ? this.slide3Shape.speed.x * step
@@ -207,8 +313,6 @@ class Renderer {
       Math.trunc(new_time / 3000) % 2 === 0
         ? this.slide3Shape.speed.y * step
         : this.slide3Shape.speed.y * 3 - this.slide3Shape.speed.y * step;
-    // let dy = Math.trunc(this.animationCounter / 50) % 2 === 0 ? this.slide3Shape.speed.y : -this.slide3Shape.speed.y;
-    console.log(dx + ', ' + dy);
     let theta = (this.slide3Shape.rotate * (time / 100)) % (2 * Math.PI);
     dx = Math.trunc(dx);
     dy = Math.trunc(dy);
@@ -221,7 +325,6 @@ class Renderer {
       Math.trunc(new_time / 3000) % 2 === 0
         ? this.slide3Shape.scalars.y * step
         : this.slide3Shape.scalars.y * 3 - this.slide3Shape.scalars.y * step;
-    console.log(theta);
 
     //transform matrices
     let translateToOrigin = new Matrix(3, 3);
@@ -242,28 +345,10 @@ class Renderer {
       let point = this.slide3Shape.def[i];
 
       let vector = Vector3(point.x, point.y, 1);
-      console.log(Matrix.multiply([translate, vector]));
-      //translate point
       let transformedVector = Matrix.multiply([transform, vector]);
       this.slide3Shape.points[i].x = transformedVector.values[0][0];
       this.slide3Shape.points[i].y = transformedVector.values[1][0];
     }
-  }
-
-  //
-
-  //
-
-  spinLogic(shape) {
-    let center = { x: 0, y: 0 };
-    for (let i = 0; i < shape.length; i++) {
-      center.x = center.x + parseInt(shape[i].data[0]);
-      center.y = center.y + parseInt(shape[i].data[1]);
-    }
-    center.x = center.x / shape.length;
-    center.y = center / shape.length;
-    // console.log(shape[0]);
-    let matrix = new Matrix(3, 3);
   }
 
   ballLogic(delta_time) {
@@ -273,9 +358,21 @@ class Renderer {
     let dir = this.ballDir;
     let speed = 0.5;
     if (x - r < 0 || x + r > this.canvas.width) {
+      if (x - r < 0) {
+        this.ballCenter.x = 0 + r;
+      }
+      if (x + r > this.canvas.width) {
+        this.ballCenter.x = this.canvas.width - r;
+      }
       dir.x = -dir.x;
     }
     if (y - r < 0 || y + r > this.canvas.height) {
+      if (y - r < 0) {
+        this.ballCenter.y = 0 + r;
+      }
+      if (y + r > this.canvas.width) {
+        this.ballCenter.y = this.canvas.height - r;
+      }
       dir.y = -dir.y;
     }
     this.ballCenter.x += dir.x * speed * delta_time;
@@ -306,18 +403,6 @@ class Renderer {
   drawSlide0() {
     // TODO: draw bouncing ball (circle that changes direction whenever it hits an edge)
 
-    // Following line is example of drawing a single polygon
-    // (this should be removed/edited after you implement the slide)
-    /*/
-        let diamond = [
-            Vector3(400, 150, 1),
-            Vector3(500, 300, 1),
-            Vector3(400, 450, 1),
-            Vector3(300, 300, 1)
-        ];
-        let teal = [0, 128, 128, 255];
-        this.drawConvexPolygon(diamond, teal);
-        //*/
     let edges = 30;
     let teal = [0, 128, 128, 255];
     this.drawCircle(this.ballCenter, this.ballRadius, edges, teal);
@@ -342,22 +427,14 @@ class Renderer {
     // TODO: draw at least 3 polygons that spin about their own centers
     //   - have each polygon spin at a different speed / direction
 
-    let diamond = [Vector3(200, 237, 1), Vector3(225, 275, 1), Vector3(200, 312, 1), Vector3(175, 275, 1)];
-
-    let teal = [0, 128, 128, 255];
-    this.drawConvexPolygon(diamond, teal);
-
-    //A[150; 0] B[0; 0] C[75; 129.904]
-    let triangle = [
-      Vector3(400, 375, 1), //B
-      Vector3(550, 375, 1), //A
-      Vector3(475, 505, 1), //C
-    ];
-    let red = [200, 0, 0, 255];
-    this.drawConvexPolygon(triangle, red);
-
-    let rectangle = [Vector3(500, 300, 1), Vector3(500, 450, 1), Vector3(300, 450, 1), Vector3(300, 300, 1)];
-    this.spinLogic(triangle);
+    for (let i = 0; i < this.slide1Shapes.length; i++) {
+      let shape = [];
+      for (const point of this.slide1Shapes[i].points) {
+        shape.push(Vector3(point.x, point.y, 1));
+      }
+      console.log(shape);
+      this.drawConvexPolygon(shape, this.slide1Shapes[i].color);
+    }
   }
 
   //
