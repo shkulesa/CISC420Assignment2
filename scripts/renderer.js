@@ -18,7 +18,72 @@ class Renderer {
         this.ballCenter = {x: 200, y: 200};
         this.ballRadius = 40;
         this.ballDir = {x: 1, y: 1};
+        this.slide1Diamond = {
+            vectors: [
+                Vector3(200, 237, 1),
+                Vector3(225, 275, 1),
+                Vector3(200, 312, 1),
+                Vector3(175, 275, 1)
+            ],
+            center: this.findCenter([
+                {x:200, y: 237},
+                {x:225, y: 275},
+                {x:200, y: 312},
+                {x:175, y: 275}
+            ]),
+            speed: { x: 100, y: 80 },
+            color: [0, 128, 128, 255],
+            rotate: 0.1
+        };
+        this.slide1Triangle = {
+            vectors: [
+                //*/
+                Vector3(400, 375, 1), //B
+                Vector3(550, 375, 1), //A
+                Vector3(475, 505, 1) //C
+                /*/
+                Vector3(10, 15, 1),
+                Vector3(30, 15, 1),
+                Vector3(20, 30, 1)
+                //*/
+            ],
+            center: this.findCenter([
+                {x:400, y: 375},
+                {x:550, y: 375},
+                {x:475, y: 505}
+            ]),
+            speed: { x: 100, y: 80 },
+            color: [200, 200, 0, 255],
+            rotate: 0.1
+        };
+        this.slide1Rectangle = {
+            vectors: [
+                Vector3(500, 100, 1),
+                Vector3(500, 250, 1),
+                Vector3(600, 250, 1),
+                Vector3(600, 100, 1)
+            ],
+            center: this.findCenter([
+                {x:500, y: 100},
+                {x:500, y: 250},
+                {x:600, y: 250},
+                {x:600, y: 100}
+            ]),
+            speed: { x: 100, y: 80 },
+            color: [0, 200, 0, 255],
+            rotate: 0.1
+        };
     }
+
+    findCenter(points) {
+        let sumX = 0;
+        let sumY = 0;
+        for (const point of points) {
+          sumX += point.x;
+          sumY += point.y;
+        }
+        return { x: sumX / points.length, y: sumY / points.length };
+      }
 
     // flag:  bool
     limitFps(flag) {
@@ -82,20 +147,60 @@ class Renderer {
         //                        [0, 1, 20],
         //                        [0, 0, 1]];
         // console.log(model_matrix);
-        
-
+        // this.spinLogic(this.slide1Diamond.vectors);
+        let theta1 = (this.slide1Triangle.theta * (time / 100)) % (2 * Math.PI);
+        let theta2 = (this.slide1Rectangle.theta * (time / 100)) % (2 * Math.PI);
+        this.spinLogic(this.slide1Triangle, theta1);
+        this.spinLogic(this.slide1Rectangle, theta2);
     }
 
-    spinLogic(shape){
-        let center = {x: 0, y:0};
-        for(let i = 0; i<shape.length; i++){
-            center.x = center.x + parseInt(shape[i].data[0]);
-            center.y = center.y + parseInt(shape[i].data[1]);
+    spinLogic(shape, theta){
+        // diamond = [
+        //     Vector3(200, 237, 1),
+        //     Vector3(225, 275, 1),
+        //     Vector3(200, 312, 1),
+        //     Vector3(175, 275, 1)
+        // ]
+        let vectors = shape.vectors;
+        let p = [];
+        // let center = {x: 0, y:0};
+        let testTheta = 0.01;
+        
+        for(let i = 0; i<vectors.length; i++){
+            let x = parseInt(vectors[i].values[0]);
+            let y = parseInt(vectors[i].values[1]);
+            let w = parseInt(vectors[i].values[2]);
+            let matrix = new Matrix(3, 1);
+            matrix.values = [[x],
+                             [y],
+                             [w]];
+            p[i] = matrix;
+            // center.x = center.x + x;
+            // center.y = center.y + y;
         }
-        center.x = center.x/shape.length;
-        center.y = center/shape.length;
+        // console.log(p)
+        // center.x = center.x/vectors.length;
+        // center.y = center.y/vectors.length;
+        //T = (C * B) * A
+        //A = to origin
+        //B = spin
+        //C = original center
         // console.log(shape[0]);
-        let matrix = new Matrix(3, 3);
+        let A = new Matrix(3, 3);
+        let B  = new Matrix(3, 3);
+        let C = new Matrix(3, 3);
+        mat3x3Translate(A, -shape.center.x, -shape.center.y);
+        mat3x3Rotate(B, testTheta); //CURRRENTTLY USING TEST THTETTAA
+        mat3x3Translate(C, shape.center.x, shape.center.y);
+        let rotated = Matrix.multiply([C, B, A]);
+//multiply points again
+        for(let i = 0; i < p.length; i++){
+            let point = Matrix.multiply([rotated, p[i]]);
+            shape.vectors[i] = point;
+        }
+        // let result = Vector3(200, 200, 1);
+        // shape.vectors[0] = result;
+        
     }
 
     ballLogic(delta_time){
@@ -141,16 +246,14 @@ class Renderer {
         
         // Following line is example of drawing a single polygon
         // (this should be removed/edited after you implement the slide)
-        /*/
-        let diamond = [
-            Vector3(400, 150, 1),
-            Vector3(500, 300, 1),
-            Vector3(400, 450, 1),
-            Vector3(300, 300, 1)
-        ];
-        let teal = [0, 128, 128, 255];
-        this.drawConvexPolygon(diamond, teal);
-        //*/
+        /*
+        diamond = [
+            Vector3(200, 237, 1),
+            Vector3(225, 275, 1),
+            Vector3(200, 312, 1),
+            Vector3(175, 275, 1)
+        ]
+        */
         let edges = 30;
         let teal = [0, 128, 128, 255];
         this.drawCircle(this.ballCenter, this.ballRadius, edges, teal);
@@ -177,34 +280,11 @@ class Renderer {
     drawSlide1() {
         // TODO: draw at least 3 polygons that spin about their own centers
         //   - have each polygon spin at a different speed / direction
-        
-        let diamond = [
-            Vector3(200, 237, 1),
-            Vector3(225, 275, 1),
-            Vector3(200, 312, 1),
-            Vector3(175, 275, 1)
-        ];
-
-        let teal = [0, 128, 128, 255];
-        this.drawConvexPolygon(diamond, teal);
-        
-        //A[150; 0] B[0; 0] C[75; 129.904]
-        let triangle = [
-            Vector3(400, 375, 1), //B
-            Vector3(550, 375, 1), //A
-            Vector3(475, 505, 1) //C
-        ];
-        let red = [200, 0, 0, 255];
-        this.drawConvexPolygon(triangle, red);
-
-        
-        let rectangle = [
-            Vector3(500, 300, 1),
-            Vector3(500, 450, 1),
-            Vector3(300, 450, 1),
-            Vector3(300, 300, 1)
-        ];
-        this.spinLogic(triangle);
+        // this.slide1Triangle
+        // this.slide1Rectangle
+        this.drawConvexPolygon(this.slide1Diamond.vectors, this.slide1Diamond.color);
+        this.drawConvexPolygon(this.slide1Triangle.vectors, this.slide1Triangle.color);
+        this.drawConvexPolygon(this.slide1Rectangle.vectors, this.slide1Rectangle.color);
     }
 
     //
